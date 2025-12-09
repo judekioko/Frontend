@@ -14,7 +14,7 @@ const STATUS_CONFIG = {
       }
     } catch {}
     const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:8000';
+    if (host === 'localhost' || host === '127.0.0.1') return 'https://masingangcdf.org/api';
     return window.location.origin;
   })(),
   REQUEST_TIMEOUT: 20000

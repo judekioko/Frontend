@@ -17,7 +17,7 @@ const CONFIG = {
             }
         } catch {}
         const host = window.location.hostname;
-        if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:8000';
+        if (host === 'localhost' || host === '127.0.0.1') return 'https://masingangcdf.org/api';
         return window.location.origin;
     })(),
     MAX_FILE_SIZE: 5 * 1024 * 1024,
