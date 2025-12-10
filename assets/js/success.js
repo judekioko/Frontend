@@ -125,7 +125,6 @@ function populateSuccessPage(data) {
     setText('success-full-name', data.full_name, 'Applicant');
     setText('success-applicant-name', data.full_name, 'Applicant');
     setText('success-applicant-email', data.email);
-    setText('success-phone', data.phone_number);
     
     // Application details
     setText('success-institution', data.institution_name, 'Institution');

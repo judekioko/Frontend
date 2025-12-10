@@ -17,7 +17,7 @@ const CONFIG = {
             }
         } catch {}
         const host = window.location.hostname;
-        if (host === 'localhost' || host === '127.0.0.1') return 'https://masingangcdf.org/api';
+        if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8000';
         return window.location.origin;
     })(),
     MAX_FILE_SIZE: 5 * 1024 * 1024,
@@ -186,6 +186,10 @@ document.addEventListener("DOMContentLoaded", () => {
         window.__editMode = null;
         const editHint = document.getElementById('edit-hint');
         if (editHint) editHint.style.display = 'none';
+        
+        // Reset to step 1 when showing apply form
+        currentStep = 1;
+        showStep(1);
     }
 
     function showStatus() {
@@ -674,6 +678,37 @@ document.addEventListener("DOMContentLoaded", () => {
         idn.addEventListener('input', () => { 
             idn.value = digitsOnly(idn.value).slice(0,12); 
         });
+        
+        // Real-time duplicate ID check
+        idn.addEventListener('blur', async () => {
+            const idValue = idn.value.trim();
+            if (!idValue || idValue.length < 4) return;
+            
+            try {
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/bursary/check-id-exists/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': Utils.getCsrfToken() || ''
+                    },
+                    body: JSON.stringify({ id_number: idValue })
+                });
+                
+                const data = await response.json();
+                
+                if (data.exists) {
+                    setFieldError(idn, 
+                        'This ID number has already been used. Each applicant can only submit one application per ID number. ' +
+                        'Use the "Edit Application" option if you need to modify your existing application.'
+                    );
+                } else {
+                    clearFieldError(idn);
+                }
+            } catch (e) {
+                console.warn('Could not check ID availability:', e);
+                // Don't show error if check fails - let backend validation handle it
+            }
+        });
     }
 
     // Form validation
@@ -825,8 +860,7 @@ async function submitApplicationToAPI() {
 
     // File validation
     const requiredFiles = [
-        { id: 'id-upload-front', name: 'ID Front Side' },
-        { id: 'chief-letter', name: 'Chief/Sub-Chief Letter' }
+        { id: 'id-upload-front', name: 'ID Front Side' }
     ];
 
     for (const { id, name } of requiredFiles) {
@@ -1037,25 +1071,20 @@ async function submitApplicationToAPI() {
         // ALWAYS include the reference number in the redirect URL
         const params = new URLSearchParams();
         params.append('ref', applicationData.reference_number);
+        params.append('success', 'true');
+        params.append('name', encodeURIComponent(applicationData.full_name));
+        params.append('email', applicationData.email);
+        params.append('institution', encodeURIComponent(applicationData.institution_name));
+        params.append('amount', applicationData.amount);
+        params.append('ward', applicationData.ward);
+        params.append('phone', applicationData.phone_number);
+        params.append('submitted', applicationData.submitted_at);
 
-        let successUrl = 'success.html';
+        let successUrl = window.location.origin + '/Frontend/success.html';
 
-        if (storageSuccess) {
-            console.log('Redirecting to success page with session storage...');
-            window.location.href = successUrl + '?' + params.toString();
-        } else {
-            console.log('Using URL parameters for success page (fallback)...');
-            // Use full URL parameters as fallback
-            params.append('name', applicationData.full_name);
-            params.append('email', applicationData.email);
-            params.append('institution', applicationData.institution_name);
-            params.append('amount', applicationData.amount);
-            params.append('ward', applicationData.ward);
-            params.append('phone', applicationData.phone_number);
-            params.append('submitted', applicationData.submitted_at);
-
-            window.location.href = successUrl + '?' + params.toString();
-        }
+        console.log('Redirecting to success page with all parameters...');
+        console.log('Success URL:', successUrl);
+        window.location.href = successUrl + '?' + params.toString();
 
     } catch (error) {
         clearTimeout(timeout);
